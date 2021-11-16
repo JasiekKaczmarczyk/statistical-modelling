@@ -1,0 +1,193 @@
+library(tidyverse)
+library(ggplot2)
+library(caTools)
+library(GGally)
+library(corrplot)
+library(scatterplot3d)
+
+#1
+df <- read.csv2("weather.csv", stringsAsFactors = FALSE)
+
+#2
+summary(df)
+str(df)
+
+#3
+#federalstate
+#stationname
+#dwd_id
+#id
+#period
+
+#4
+df <- filter(df, complete.cases(df))
+
+#5
+df <- df[c(5:7,9:22)]
+
+#6
+sample1 <- sample.split(df, SplitRatio = 0.8)
+train <- df[sample1==TRUE,]
+test <- df[sample1==FALSE,]
+
+#7
+y_train <- train[11]
+y_test <- test[11]
+
+X_train <- train[c(1:10,12:17)]
+X_test <- test[c(1:10,12:17)]
+
+#8
+ggpairs(X_train)
+ggpairs(X_test)
+
+#9
+cor1 <- cor(df)
+
+#10
+corrplot(cor1)
+corrplot(cor1, method = "number", type = "lower")
+
+#11
+df_n <- df[abs(cor1['MEAN.ANNUAL.RAINFALL',])>=0.5]
+
+#12
+ggpairs(df_n)
+
+```{r}
+#1
+model1 <- lm(MEAN.ANNUAL.RAINFALL~1 , data=train)
+summary(model1)
+
+mean_rainfall <- mean(y_train$MEAN.ANNUAL.RAINFALL)
+```
+```{r}
+#2
+RMSE1 <- sqrt(mean(model1$residuals^2))
+RMSE
+```
+```{r}
+#3
+pred1 <- predict(model1, test)
+RMSE2 <- sqrt(mean((pred1-test$MEAN.ANNUAL.RAINFALL)^2))
+```
+
+```{r}
+#4
+par(mfrow=c(1,2))
+plot(train$MEAN.ANNUAL.RAINFALL)
+abline(model1)
+plot(test$MEAN.ANNUAL.RAINFALL)
+abline(model1)
+```
+```{r}
+#5
+#altitude
+
+model2 <- lm(MEAN.ANNUAL.RAINFALL~ALTITUDE, data=train)
+RMSE3 <- sqrt(mean(model2$residuals^2))
+
+```
+
+```{r}
+pred2 <- predict(model2, test)
+RMSE4 <- sqrt(mean((pred2-test$MEAN.ANNUAL.RAINFALL)^2))
+```
+
+```{r}
+par(mfrow=c(1,2))
+plot(train$ALTITUDE, train$MEAN.ANNUAL.RAINFALL)
+abline(model2)
+plot(test$ALTITUDE,test$MEAN.ANNUAL.RAINFALL)
+abline(model2)
+```
+
+
+
+```{r}
+#8
+
+model3 <- lm(MEAN.ANNUAL.RAINFALL~MAX.RAINFALL, data=train)
+RMSE5 <- sqrt(mean(model3$residuals^2))
+
+```
+
+```{r}
+pred3 <- predict(model3, test)
+RMSE6 <- sqrt(mean((pred3-test$MEAN.ANNUAL.RAINFALL)^2))
+```
+
+```{r}
+par(mfrow=c(1,2))
+plot(train$MAX.RAINFALL, train$MEAN.ANNUAL.RAINFALL)
+abline(model3)
+plot(test$MAX.RAINFALL,test$MEAN.ANNUAL.RAINFALL)
+abline(model3)
+```
+
+```{r}
+#11
+
+model4 <- lm(MEAN.ANNUAL.RAINFALL~ALTITUDE+MAX.RAINFALL, data=train)
+RMSE7 <- sqrt(mean(model4$residuals^2))
+
+```
+
+```{r}
+pred4 <- predict(model4, test)
+RMSE8 <- sqrt(mean((pred4-test$MEAN.ANNUAL.RAINFALL)^2))
+```
+
+```{r}
+par(mfrow=c(1,2))
+scatter.3d_train <- scatterplot3d(train$ALTITUDE,  train$MAX.RAINFALL, train$MEAN.ANNUAL.RAINFALL)
+scatter.3d_train$plane3d(model4)
+scatter.3d_test <- scatterplot3d(test$ALTITUDE, test$MAX.RAINFALL, test$MEAN.ANNUAL.RAINFALL)
+scatter.3d_test$plane3d(model4)
+```
+
+```{r}
+par(mfrow=c(1,2))
+barplot(c(RMSE1, RMSE3, RMSE5, RMSE7))
+barplot(c(RMSE2, RMSE4, RMSE6, RMSE8))
+```
+
+```{r}
+#1
+model5 <- lm(MEAN.ANNUAL.RAINFALL~ALTITUDE+log(ALTITUDE)+MAX.RAINFALL, data=train)
+RMSE9 <- sqrt(mean(model5$residuals^2))
+```
+
+
+```{r}
+pred5 <- predict(model5, test)
+RMSE10 <- sqrt(mean((pred5-test$MEAN.ANNUAL.RAINFALL)^2))
+
+```
+
+```{r}
+#3
+model6 <- lm(MEAN.ANNUAL.RAINFALL~MAX.RAINFALL+MAX.RAINFALL^2+log(MAX.RAINFALL), data=train)
+RMSE11 <- sqrt(mean(model6$residuals^2))
+```
+
+
+```{r}
+pred6 <- predict(model6, test)
+RMSE12 <- sqrt(mean((pred6-test$MEAN.ANNUAL.RAINFALL)^2))
+
+```
+
+```{r}
+#5
+model7 <- lm(MEAN.ANNUAL.RAINFALL~ALTITUDE*log(ALTITUDE)*ALTITUDE^2*MAX.RAINFALL*log(MAX.RAINFALL)*MAX.RAINFALL^2, data=train)
+RMSE13 <- sqrt(mean(model7$residuals^2))
+```
+
+
+```{r}
+pred7 <- predict(model7, test)
+RMSE14 <- sqrt(mean((pred7-test$MEAN.ANNUAL.RAINFALL)^2))
+
+```
+

@@ -1,0 +1,188 @@
+```{r}
+#biblioteki
+library(tidyverse)
+library(ggplot2)
+library(corrplot)
+library(caTools)
+library(readxl)
+library(scatterplot3d)
+```
+
+
+```{r}
+#wczytanie danych i podsumowanie
+df <- read_excel("zanieczyszczenia.xlsx", na = "NA")
+
+summary(df)
+str(df)
+```
+
+```{r}
+sum(is.na(df))
+#widac ze wystepuje az 315 pustych recordow, ktorych trzeba sie w jakis sposob pozbyc
+```
+
+
+```{r}
+#usuniecie pustych recordow oraz zmiennych odpowiadajacych miesiacu, dniu i godzinie
+df <- filter(df, complete.cases(df))
+df <- df[,4:ncol(df)]
+```
+
+```{r}
+#korelacja pomiedzy zmiennymi, by znalezc zmienne ktore maja najwiekszy wplyw na zmiane temperatury
+cor1 <- cor(df)
+corrplot(cor1, method = "number", type = "lower")
+#wystepuje silna korelacja pomiedzy temperatura a O3, zmienne PM2.5 i PM10 nie wykazuja korelacji z temperatura, pozostale zmienne wykazuja lekka korelacje ujemna
+```
+```{r}
+hist(df$TEMP)
+#wykres przestawia rozklad temperatury
+```
+
+
+```{r}
+#dzielenie zbioru danych na zbior treningowy i testowy w proporcji 80%-20%
+sample1 <- sample.split(df$TEMP, SplitRatio = 0.8)
+train <- df[sample1==TRUE,]
+test <- df[sample1==FALSE,]
+```
+
+```{r}
+mean_temp <- mean(train$TEMP)
+mean_temp
+```
+
+```{r}
+#pierwszy model bez zmiennej objasniajacej
+model1 <- lm(TEMP~1 , data=train)
+summary(model1)
+
+mean_rainfall <- mean(train$TEMP)
+
+RMSE1_train <- sqrt(mean(model1$residuals^2))
+
+pred1 <- predict(model1, test)
+RMSE1_test <- sqrt(mean((pred1-test$TEMP)^2))
+
+#RMSE dla zbioru treningowego wynosi okolo 11.263, a dla testowego 10.668
+#porownujac to rzedami wielkosci temperatury jest to bardzo zly wynik
+```
+
+```{r}
+#wykres zobrazowuje nieskutecznosc wybranego modelu
+par(mfrow=c(1,2))
+plot(train$TEMP)
+abline(model1)
+plot(test$TEMP)
+abline(model1)
+```
+
+```{r}
+#w tym modelu jako zmienna objasniajaca wykorzystam O3 poniewaz ma najwyzszy wspolczynnik korelacji do temperatury
+
+model2 <- lm(TEMP~O3, data=train)
+RMSE2_train <- sqrt(mean(model2$residuals^2))
+
+pred2 <- predict(model2, test)
+RMSE2_test <- sqrt(mean((pred2-test$TEMP)^2))
+
+#RMSE dla zbioru treningowego wynosi okolo 8.188, a dla testowego 8.057
+#blad nadal jest duzy jednak jest mniejszy niz dla poprzedniego modelu
+```
+
+```{r}
+#zoobrazowanie wyniku modelu
+par(mfrow=c(1,2))
+plot(train$O3, train$TEMP)
+abline(model2)
+plot(test$O3,test$TEMP)
+abline(model2)
+#widac ze ksztalt wykresu przypomina logarytm
+```
+
+
+
+```{r}
+#w tym modelu jako zmienna objasniajaca wykorzystam log(O3)
+
+model3 <- lm(TEMP~log(O3), data=train)
+RMSE3_train <- sqrt(mean(model3$residuals^2))
+
+pred3 <- predict(model3, test)
+RMSE3_test <- sqrt(mean((pred3-test$TEMP)^2))
+
+#tym razem RMSE sie powiekszylo
+```
+
+```{r}
+par(mfrow=c(1,2))
+plot(log(train$O3), train$TEMP)
+abline(model3)
+plot(log(test$O3),test$TEMP)
+abline(model3)
+```
+
+```{r}
+#tym razem wykorzystam wiecej zmiennych
+
+model4 <- lm(TEMP~O3+NO2, data=train)
+RMSE4_train <- sqrt(mean(model4$residuals^2))
+
+pred4 <- predict(model4, test)
+RMSE4_test <- sqrt(mean((pred4-test$TEMP)^2))
+```
+
+```{r}
+par(mfrow=c(1,2))
+scatter.3d_train <- scatterplot3d(train$O3,  train$NO2, train$TEMP)
+scatter.3d_train$plane3d(model4)
+scatter.3d_test <- scatterplot3d(test$O3, test$NO2, test$TEMP)
+scatter.3d_test$plane3d(model4)
+```
+
+```{r}
+#tworzenie modelu z kombinacja zmiennych
+model5 <- lm(TEMP~O3*CO+NO2, data=train)
+RMSE5_train <- sqrt(mean(model5$residuals^2))
+
+pred5 <- predict(model5, test)
+RMSE5_test <- sqrt(mean((pred5-test$TEMP)^2))
+
+```
+
+```{r}
+#kolejny model
+model6 <- lm(TEMP~log(O3)+O3^2+O3*CO+NO2+NO2^2+log(NO2), data=train)
+RMSE6_train <- sqrt(mean(model6$residuals^2))
+
+pred6 <- predict(model6, test)
+RMSE6_test <- sqrt(mean((pred6-test$TEMP)^2))
+
+```
+
+```{r}
+#zoobrazowanie RMSE dla poszczegolnych modeli
+par(mfrow=c(1,2))
+barplot(c(RMSE1_train, RMSE2_train, RMSE3_train, RMSE4_train, RMSE5_train, RMSE6_train))
+barplot(c(RMSE1_test, RMSE2_test, RMSE3_test, RMSE4_test, RMSE5_test, RMSE6_test))
+#RMSE w przypadku modeli 2-6 nie rozni sie znacznie
+```
+
+```{r}
+#Podsumowanie
+
+#pomimo zastosowania roznych kombinacji zmiennych objasniajacych RMSE nadal jest duze
+#trzeba by zastosowac inne bardziej skomplikowane modele niz lm
+#patrzac na wykresy RMSE wybieram model 2 ktory wypada prawie tak dobrze jak inne bardziej skomplikowane modele
+#a mimo to nie wymaga duzo wiekszej mocy obliczeniowej
+```
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,63 @@
+library(ggplot2)
+library(tidyverse)
+library(ggiraphExtra)
+
+#1
+df <- read.delim("choroby_serca.txt")
+head(df)
+
+#2
+```{r}
+#a
+cor(df$rower, df$palenie)
+# wspolczynnik korelacji na poziomie 0.0151 - brak korelacji
+```
+
+```{r}
+#b
+hist(df$choroby)
+#histogram ma ksztalt dzwonu - rozklad normalny
+```
+```{r}
+#c
+plot(df$rower, df$choroby)
+plot(df$palenie, df$choroby)
+#w przypadku rower-choroby widac silna zaleznosc liniowa
+#w przypadku palenie-choroby lekka zaleznosc liniowa
+```
+#3
+model <- lm(choroby~rower+palenie, data=df)
+
+```{r}
+#4
+summary(model)
+```
+
+#a
+#Hipoteze zerowa mozna odrzucic (p-value: < 2.2e-16), palenie i jazda na rowerze maja wplyw na wystepowanie chorob
+
+#b
+#wraz ze wzrostem liczby osob jezdzacych na rowerze, liczba chorujacych spada o 0.2%
+#wraz ze wzrostem liczby osob palacych, liczba chorujacych wzrasta o 0.17%
+
+```{r}
+#c
+RSS <- deviance(model)
+RSE <- sqrt(RSS/df.residual(model))
+fi2 <- RSS/sum((df$choroby - mean(df$choroby))^2)
+R2 <- 1- fi2
+
+RSS
+RSE
+fi2
+R2
+```
+```{r}
+#5
+plot(model,3)
+#spelnia
+```
+```{r}
+#6
+ggPredict(fit = model)
+```

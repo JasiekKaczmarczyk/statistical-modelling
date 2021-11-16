@@ -1,0 +1,66 @@
+library(csrplus)
+library(tidyverse)
+
+#1
+tail(quakes)
+ggplot(data=quakes, aes(x=long, y=lat))+
+  geom_point()+
+  ggtitle("Quake Locations")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+#2
+ggplot(data=quakes, aes(x=mag, y=stations))+
+  geom_point()
+
+#3
+ggplot(data=quakes, aes(x=mag, y=stations))+
+  geom_point(pch=20, alpha = 0.3, colour = rgb(0.1, 0.2, 0.8)) +
+  geom_jitter(width = 0.5, height = 0.5)
+
+#4
+Quake.mod = lm(stations~mag, data=quakes)
+summary(Quake.mod)
+
+#5
+ggplot(data=quakes, aes(x=mag, y=stations))+
+  geom_point(pch=20, alpha = 0.3, colour = rgb(0.1, 0.2, 0.8)) +
+  geom_jitter(width = 0.5, height = 0.5)+
+  geom_smooth(method='lm')
+
+#6
+QuakeResiduals <- residuals(Quake.mod)
+QuakeFittedValues <- fitted.values(Quake.mod)
+
+ggplot(data=quakes,aes(x=mag, y=QuakeResiduals))+
+  geom_point(pch=20, alpha = 0.3, colour = rgb(0.1, 0.2, 0.8))+
+  geom_hline(yintercept=0, color = "red")+
+  ggtitle("Residual Plot")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  labs(x = "Magnitude", y="Residual")
+
+#7
+ggplot(data = quakes, aes(x=QuakeResiduals))+
+  geom_histogram()
+
+#8 - ???????????????????????????????????????????
+conf_int <- confint(Quake.mod, level=0.95)
+
+
+ggplot(data=quakes,aes(x=mag, y=stations))+
+  geom_point(pch=20, alpha = 0.3, colour = rgb(0.1, 0.2, 0.8))+
+  ggtitle("Residual Plot")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  labs(x = "Magnitude", y="Residual")+
+  geom_abline(intercept=20, color = "red")
+  
+# ???????????????????????????????????????????????
+
+#9 ?????????????????????????????????????????????
+RSS <- deviance(Quake.mod)
+RSE <- sqrt(deviance(Quake.mod)/df.residual(Quake.mod))
+# ?????????????????????????????????????????????
+
+#10
+summary(Quake.mod)
+#p-value < 2.2e-16
+
